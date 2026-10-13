@@ -1,0 +1,33 @@
+<script setup>
+import { computed, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { tr } from '../translations'
+import { t } from '../locale'
+import { localizedProduct } from '../localized-product'
+import { products, photo, quoteLink } from '../site-data'
+import { finishedFirst } from '../product-display'
+import ProductCard from '../components/ProductCard.vue'
+import QuoteBand from '../components/QuoteBand.vue'
+const route = useRoute()
+const product = computed(() => localizedProduct(products.find(p=>p.slug===route.params.slug)))
+const chosen = ref(0)
+watch(()=>route.params.slug,()=>{chosen.value=0})
+const related = computed(()=>finishedFirst(products.filter(p=>p.slug!==product.value?.slug&&p.material===product.value?.material)).slice(0,3))
+function changePhoto(step) { chosen.value = (chosen.value + step + product.value.gallery.length) % product.value.gallery.length }
+</script>
+<template>
+ <template v-if="product">
+ <div class="shell breadcrumb"><SiteLink to="/">{{tr('Home')}}</SiteLink><span>/</span><SiteLink to="/products/">{{tr('Products')}}</SiteLink><span>/</span><span>{{product.name}}</span></div>
+ <section class="shell product-document">
+  <div class="product-document-media"><div class="product-gallery" @keydown.left.prevent="changePhoto(-1)" @keydown.right.prevent="changePhoto(1)">
+   <div class="product-main-photo"><img :src="photo(product.gallery[chosen])" :alt="product.name+t(' — product photo ',' — 产品照片 ')+(chosen+1)" width="700" height="600" fetchpriority="high"></div>
+   <div v-if="product.gallery.length>1" class="document-gallery-controls"><button class="gallery-arrow" @click="changePhoto(-1)" :aria-label="t('Previous photo','上一张图片')">‹</button><div class="gallery-thumbs"><button v-for="(image,index) in product.gallery" :key="image" :class="{active:chosen===index}" :aria-label="t('Show ','查看')+product.name+t(' photo ','图片 ')+(index+1)" :aria-pressed="chosen===index" @click="chosen=index"><img :src="photo(image)" alt="" width="84" height="70"></button></div><button class="gallery-arrow" @click="changePhoto(1)" :aria-label="t('Next photo','下一张图片')">›</button></div>
+   <p class="photo-caption">{{tr('Product photography · Shengxin 2026 catalog')}} <span aria-live="polite">{{chosen+1}} / {{product.gallery.length}}</span></p>
+  </div><div class="document-enquiry"><h2>{{t('Technical enquiry','技术询价')}}</h2><p>{{t('Send your size, quantity and operating conditions. We will review the appropriate construction.','提供尺寸、数量和使用工况，与我们讨论适合的产品结构。')}}</p><SiteLink class="button button--primary" :to="quoteLink(product)">{{tr('Request a Quote')}} ↗</SiteLink></div></div>
+  <div class="product-document-copy"><header class="product-introduction"><p class="eyebrow">{{tr(product.material)}} / {{product.form}}</p><h1>{{product.name}}</h1><p>{{product.overview}}</p><div class="size-highlight"><span>{{tr('CATALOG RANGE')}}</span><strong>{{product.size}}</strong></div></header>
+  <nav class="document-sections" :aria-label="tr('Product sections')"><a href="#overview">{{tr('Overview')}}</a><a href="#specifications">{{tr('Specifications')}}</a><a href="#customization">{{tr('Customization')}}</a><a href="#applications">{{tr('Applications')}}</a></nav>
+  <div class="technical-content"><section id="overview"><p class="eyebrow">{{ tr("01 / Product overview") }}</p><h2>{{ tr("Material, construction and purpose.") }}</h2><p>{{ product.overview }}</p><div class="property-pills"><span v-for="property in product.properties" :key="property">{{ property }}</span></div><p v-if="product.note" class="technical-note">{{ product.note }}</p></section><section id="specifications"><p class="eyebrow">{{ tr("02 / Technical specifications") }}</p><h2>{{ tr("Know what you're specifying.") }}</h2><div class="table-scroll" tabindex="0" role="region" :aria-label='tr("Available sizes and construction")'><table><caption>{{ tr("Available sizes & construction") }}</caption><tbody><tr v-for="[key,value] in product.specs" :key="key"><th scope="row">{{ key }}</th><td>{{ value }}</td></tr></tbody></table></div><div v-if="product.table" class="table-scroll" tabindex="0" role="region" :aria-label='tr("Catalog specification options, scroll horizontally on small screens")'><table><caption>{{ tr("Catalog specification options") }}</caption><thead><tr><th v-for="heading in product.table.headings" :key="heading" scope="col">{{ heading }}</th></tr></thead><tbody><tr v-for="row in product.table.rows" :key="row[0]"><td v-for="(value,index) in row" :key="index">{{ value }}</td></tr></tbody></table></div><p class="technical-note">{{ t('Source: Shengxin High Performance Fibers & Ropes Catalog 2026, PDF page ','来源：盛芯高性能纤维与绳索 2026 产品手册，PDF 第 ') }}{{ product.page }}{{ t('. Catalog values are reference data, not a working-load rating. Confirm test methods, tolerances and suitability for the final construction with our team.',' 页。手册数值仅供参考，并非工作载荷额定值。请与我们确认最终结构的测试方法、公差和适用性。') }}</p></section><section id="customization"><p class="eyebrow">{{ tr("03 / Customization") }}</p><h2>{{ tr("Make it fit your application.") }}</h2><div class="custom-options"><div><b>{{ tr("Construction") }}</b><p>{{ tr("Fiber selection, yarn count, braid or weave.") }}</p></div><div><b>{{ tr("Dimensions") }}</b><p>{{ tr("Diameter, width, thickness and finished length.") }}</p></div><div><b>{{ tr("Finish") }}</b><p>{{ tr("Color, coating and finishing requirements.") }}</p></div><div><b>{{ tr("Supply format") }}</b><p>{{ tr("Spools, reels, cut lengths and packaging.") }}</p></div></div><SiteLink class="text-link" :to="quoteLink(product)">{{ tr("Send your specification ↗") }}</SiteLink></section><section id="applications"><p class="eyebrow">{{ tr("04 / Typical applications") }}</p><div class="property-pills"><span v-for="item in product.applications" :key="item">{{ item }}</span></div><p>{{ tr("Share the operating environment and required performance so we can review the construction against your application.") }}</p></section></div></div>
+ </section>
+  <section class="section section--ash"><div class="shell"><div class="section-head"><div><p class="eyebrow">{{ tr("Continue exploring") }}</p><h2>{{ t('Related ','相关 ') }}{{ tr(product.material) }}{{ t(' products.','产品。') }}</h2></div><SiteLink class="text-link" to="/products/">{{ tr("Full collection ↗") }}</SiteLink></div><div class="catalog-grid"><ProductCard v-for="item in related" :key="item.slug" :product="item"/></div></div></section><QuoteBand/></template>
+  <section v-else class="shell empty-state"><p class="eyebrow">{{ tr("Product not found / 404") }}</p><h1>{{ tr("Let's find the right material.") }}</h1><SiteLink class="button button--primary" to="/products/">{{ tr("Explore products ↗") }}</SiteLink></section>
+</template>
